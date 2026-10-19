@@ -1,5 +1,7 @@
 # ❄️ snowweb — WebSocket 실시간 눈 제보 앱 (React Native)
 
+구조 설명: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 사용자가 지금 있는 곳의 적설·노면 상태를 제보하면 접속한 모든 사람에게 **즉시** 퍼지고,
 다른 사람은 "👍 맞아요 / 🫥 사라졌어요"로 검증합니다. 서버 ↔ 앱이 WebSocket 하나로 양방향 통신해요.
 
