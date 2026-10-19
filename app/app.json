@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "snowweb",
+    "slug": "snowweb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "내 위치 근처의 눈 제보를 보여주고, 제보 위치를 기록하기 위해 사용해요."
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "usesCleartextTraffic": true
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "내 위치 근처의 눈 제보를 보여주고, 제보 위치를 기록하기 위해 사용해요."
+        }
+      ]
+    ]
+  }
+}
