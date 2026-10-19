@@ -43,6 +43,25 @@ npx expo install expo-location react-native-safe-area-context expo-status-bar
 
 > 템플릿이 `index.js`/`App.tsx` 구조라면 `App.js` 를 그 자리에 맞게 import 해주세요.
 
+## 기상청 실시간 예보 연동
+
+서버가 **기상청 단기예보 조회서비스**(공공데이터포털)를 호출해 앱에 WebSocket으로 밀어줍니다.
+API 키는 서버에만 두므로 앱을 디컴파일해도 키가 노출되지 않아요.
+
+1. [공공데이터포털 – 기상청_단기예보 조회서비스](https://www.data.go.kr/data/15084084/openapi.do)에서 활용신청 → 마이페이지에서 인증키 확인
+2. 서버 실행 시 키 전달
+   ```bash
+   KMA_API_KEY=발급받은키 npm start
+   ```
+   키가 없으면 테스트(mock) 예보로 동작하고, 앱에 "테스트 데이터"라고 표시돼요.
+
+동작 방식
+- 위경도 → 기상청 5km 격자(nx, ny) 변환 후 **단기예보(getVilageFcst)** + 가까운 6시간은 **초단기예보(getUltraSrtFcst)** 로 보정
+- 강수형태(PTY) 눈·비/눈·눈날림 또는 신적설(SNO) > 0 인 시간을 "눈 예보"로 판단
+- 10분마다 발표시각을 확인해 **새 발표가 나왔을 때만** 기상청 호출 → 결과가 바뀌면 접속자에게 즉시 푸시
+- 격자별 캐시라 같은 동네 사용자가 많아도 호출 수는 그대로
+- 전국 19개 주요 지점(`server/regions.js`) 눈 예보 요약을 모든 접속자에게 브로드캐스트
+
 ## 메시지 프로토콜 (JSON)
 
 | 방향 | type | 내용 |
@@ -54,6 +73,9 @@ npx expo install expo-location react-native-safe-area-context expo-status-bar
 | S→C | `presence` | `{ count }` 접속자 수 |
 | S→C | `report:new` / `report:update` | `{ report }` 전체에 브로드캐스트 |
 | S→C | `report:expire` | `{ id }` 3시간 경과 또는 "사라졌어요" 3표 |
+| C→S | `forecast:subscribe` | `{ lat, lng }` 내 위치 예보 구독 (위치 바뀔 때마다) |
+| S→C | `forecast:local` | `{ grid, hours[24], summary{willSnow,start,end,totalSno,maxPop} }` |
+| S→C | `forecast:national` | `{ updatedAt, regions[] }` 전국 주요 지역 눈 예보 |
 | S→C | `ack` / `error` | 제보 접수 확인 / 검증·도배 방지 메시지 |
 
 ## 서버 규칙 (index.js 상단 상수로 조절)

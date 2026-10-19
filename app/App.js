@@ -8,6 +8,7 @@ import { WS_URL } from './src/config';
 import { useSnowSocket } from './src/useSnowSocket';
 import ReportForm from './src/components/ReportForm';
 import ReportCard from './src/components/ReportCard';
+import ForecastPanel from './src/components/ForecastPanel';
 
 // 두 좌표 사이 거리(km)
 const haversine = (a, b) => {
@@ -26,7 +27,15 @@ function Main() {
   const [radius, setRadius] = useState(5);
   const [myVotes, setMyVotes] = useState({}); // id -> 'confirm' | 'gone'
 
-  const { status, clientId, reports, online, lastError, createReport, vote } = useSnowSocket(WS_URL, nickname);
+  const {
+    status, clientId, reports, online, lastError, createReport, vote,
+    localForecast, nationalForecast, subscribeForecast,
+  } = useSnowSocket(WS_URL, nickname);
+
+  // 위치가 바뀌면 내 위치 기상청 예보 구독 갱신 (서버가 같은 격자는 캐시)
+  useEffect(() => {
+    if (coords) subscribeForecast(coords.lat, coords.lng);
+  }, [coords, subscribeForecast]);
 
   // 위치 추적
   useEffect(() => {
@@ -78,6 +87,7 @@ function Main() {
           <Text style={s.statusText}>{statusLabel}</Text>
         </View>
         <TextInput value={nickname} onChangeText={setNickname} maxLength={20} style={s.nick} placeholder="닉네임" />
+        <ForecastPanel local={localForecast} national={nationalForecast} />
         <View style={s.filters}>
           {RADII.map((km) => (
             <Pressable key={String(km)} onPress={() => setRadius(km)} style={[s.filter, radius === km && s.filterOn]}>

@@ -21,6 +21,9 @@ export function useSnowSocket(url, nickname) {
   const [reports, setReports] = useState([]);
   const [online, setOnline] = useState(0);
   const [lastError, setLastError] = useState(null);
+  const [localForecast, setLocalForecast] = useState(null);    // 내 위치 기상청 예보
+  const [nationalForecast, setNationalForecast] = useState(null); // 전국 주요 지역 눈 예보
+  const forecastLocRef = useRef(null); // 재연결 시 예보 구독을 다시 보내기 위해 보관
 
   const rawSend = (obj) => {
     const ws = wsRef.current;
@@ -49,6 +52,12 @@ export function useSnowSocket(url, nickname) {
       case 'report:expire':
         setReports((prev) => prev.filter((r) => r.id !== msg.id));
         break;
+      case 'forecast:local':
+        setLocalForecast(msg);
+        break;
+      case 'forecast:national':
+        setNationalForecast(msg);
+        break;
       case 'error':
         setLastError({ message: msg.message, at: Date.now() });
         break;
@@ -70,6 +79,7 @@ export function useSnowSocket(url, nickname) {
       retryRef.current = 0;
       setStatus('open');
       ws.send(JSON.stringify({ type: 'hello', nickname: nickRef.current }));
+      if (forecastLocRef.current) ws.send(JSON.stringify({ type: 'forecast:subscribe', ...forecastLocRef.current }));
       const pending = queueRef.current;
       queueRef.current = [];
       pending.forEach((m) => ws.send(JSON.stringify(m)));
@@ -134,5 +144,14 @@ export function useSnowSocket(url, nickname) {
 
   const vote = useCallback((id, kind) => send({ type: 'report:vote', id, kind }), [send]);
 
-  return { status, clientId, reports, online, lastError, createReport, vote };
+  // 내 위치 예보 구독 (위치가 바뀌면 다시 호출; 연결 전이면 onopen에서 전송)
+  const subscribeForecast = useCallback((lat, lng) => {
+    forecastLocRef.current = { lat, lng };
+    rawSend({ type: 'forecast:subscribe', lat, lng });
+  }, []);
+
+  return {
+    status, clientId, reports, online, lastError, createReport, vote,
+    localForecast, nationalForecast, subscribeForecast,
+  };
 }

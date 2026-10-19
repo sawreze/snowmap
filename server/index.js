@@ -1,7 +1,12 @@
 // snowweb 실시간 제보 서버
 // 실행: npm install && npm start   (기본 포트 8080, PORT 환경변수로 변경)
+// 기상청 연동: KMA_API_KEY=발급받은키 npm start  (키가 없으면 mock 예보로 동작)
 const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
+const kma = require('./kma');
+const REGIONS = require('./regions');
+
+const FORECAST_REFRESH_MS = 10 * 60 * 1000; // 10분마다 발표시각 확인 (바뀐 경우에만 실제 호출)
 
 const PORT = Number(process.env.PORT) || 8080;
 const REPORT_TTL_MS = 3 * 60 * 60 * 1000; // 제보 유효시간 3시간
@@ -66,6 +71,7 @@ wss.on('connection', (ws) => {
     clientId: ws.id,
     reports: [...reports.values()].map(serialize).sort((a, b) => b.createdAt - a.createdAt),
   });
+  if (national) send(ws, { type: 'forecast:national', ...national });
   broadcastPresence();
 
   ws.on('message', (raw) => {
@@ -135,6 +141,20 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'forecast:subscribe': {
+        // 내 위치 예보 구독: 위치가 바뀔 때마다 앱이 다시 보냄
+        if (typeof msg.lat !== 'number' || typeof msg.lng !== 'number') {
+          return send(ws, { type: 'error', message: '예보 위치가 올바르지 않습니다.' });
+        }
+        const grid = kma.toGrid(msg.lat, msg.lng);
+        if (grid.nx < 1 || grid.nx > 149 || grid.ny < 1 || grid.ny > 253) {
+          return send(ws, { type: 'forecast:local', error: '기상청 예보 범위(한반도) 밖의 위치예요.' });
+        }
+        ws.grid = grid;
+        pushLocal(ws, true);
+        break;
+      }
+
       case 'ping':
         send(ws, { type: 'pong', t: Date.now() });
         break;
@@ -168,6 +188,50 @@ const sweeper = setInterval(() => {
   }
 }, 60 * 1000);
 
-wss.on('close', () => { clearInterval(heartbeat); clearInterval(sweeper); });
+// ---------- 기상청 예보 ----------
+let national = null; // { updatedAt, regions: [{ name, lat, lng, ...summary }] }
+
+async function refreshNational() {
+  const results = [];
+  for (const r of REGIONS) { // 순차 호출: 초당 호출 제한 회피
+    try {
+      const { nx, ny } = kma.toGrid(r.lat, r.lng);
+      const hours = await kma.getHourly(nx, ny);
+      results.push({ ...r, ...kma.summarize(hours) });
+    } catch (e) {
+      results.push({ ...r, error: e.message });
+    }
+  }
+  const next = { updatedAt: Date.now(), mock: kma.MOCK, regions: results };
+  const changed = JSON.stringify(next.regions) !== JSON.stringify(national?.regions);
+  national = next;
+  if (changed) broadcast({ type: 'forecast:national', ...national });
+}
+
+// 클라이언트별 내 위치 예보 전송 (값이 바뀐 경우에만, force면 무조건)
+async function pushLocal(ws, force = false) {
+  if (!ws.grid) return;
+  try {
+    const hours = await kma.getHourly(ws.grid.nx, ws.grid.ny);
+    const payload = { grid: ws.grid, hours, summary: kma.summarize(hours), mock: kma.MOCK };
+    const sig = JSON.stringify(payload);
+    if (!force && sig === ws.lastLocalSig) return;
+    ws.lastLocalSig = sig;
+    send(ws, { type: 'forecast:local', updatedAt: Date.now(), ...payload });
+  } catch (e) {
+    send(ws, { type: 'forecast:local', error: e.message });
+  }
+}
+
+async function refreshAll() {
+  await refreshNational();
+  for (const ws of wss.clients) await pushLocal(ws); // 같은 격자는 캐시라 추가 호출 없음
+}
+
+refreshAll().catch((e) => console.error('forecast refresh failed:', e.message));
+const forecastTimer = setInterval(() => refreshAll().catch((e) => console.error(e.message)), FORECAST_REFRESH_MS);
+
+wss.on('close', () => { clearInterval(heartbeat); clearInterval(sweeper); clearInterval(forecastTimer); });
 
 console.log(`❄️  snowweb server listening on ws://0.0.0.0:${PORT}`);
+console.log(kma.MOCK ? '🌨️  기상청: KMA_API_KEY 없음 → mock 예보로 동작' : '🌨️  기상청 API 연동 활성화');
