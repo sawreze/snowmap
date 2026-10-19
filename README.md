@@ -9,12 +9,12 @@ snowweb/
 │  ├─ index.js
 │  └─ test-client.js  두 클라이언트로 제보·투표 전달 테스트
 └─ app/               React Native (Expo) 앱
-   ├─ App.js          메인 화면 (연결 상태, 반경 필터, 제보 목록)
+   ├─ App.jsx         메인 화면 (연결 상태, 반경 필터, 제보 목록)
    ├─ app.json        위치 권한 설정
    └─ src/
       ├─ config.js        서버 주소, 적설 단계/노면 상수
       ├─ useSnowSocket.js WebSocket 훅 (자동 재연결, 오프라인 큐)
-      └─ components/      ReportForm(제보 시트), ReportCard(제보 카드)
+      └─ components/      ReportForm.jsx(제보 시트), ReportCard.jsx(제보 카드), ForecastPanel.jsx(기상청 예보)
 ```
 
 ## 1. 서버 실행
@@ -34,14 +34,14 @@ cd snowweb-app
 npx expo install expo-location react-native-safe-area-context expo-status-bar
 ```
 
-그다음 이 폴더의 `app/App.js`, `app/app.json`, `app/src/` 를 새 프로젝트에 덮어쓰고:
+그다음 이 폴더의 `app/App.jsx`, `app/app.json`, `app/src/` 를 새 프로젝트에 덮어쓰고:
 
 1. `src/config.js` 의 `WS_URL` 을 서버 PC 주소로 변경
    - 실제 폰: `ws://<PC 내부 IP>:8080` (같은 Wi-Fi, 방화벽에서 8080 허용)
    - Android 에뮬레이터: `ws://10.0.2.2:8080` / iOS 시뮬레이터: `ws://localhost:8080`
 2. `npx expo start` → Expo Go로 QR 스캔
 
-> 템플릿이 `index.js`/`App.tsx` 구조라면 `App.js` 를 그 자리에 맞게 import 해주세요.
+> 템플릿이 `index.js`/`App.tsx` 구조라면 `App.jsx` 를 그 자리에 맞게 import 해주세요.
 
 ## 기상청 실시간 예보 연동
 
