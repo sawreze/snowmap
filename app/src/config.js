@@ -1,6 +1,14 @@
-// 개발 PC의 내부 IP로 바꾸세요. (휴대폰과 PC가 같은 Wi-Fi여야 함)
-// Android 에뮬레이터: ws://10.0.2.2:8080 / iOS 시뮬레이터: ws://localhost:8080
-export const WS_URL = 'ws://192.168.0.10:8080';
+import Constants from 'expo-constants';
+
+// 서버 주소 자동 감지:
+// `npm start`로 띄우면 Expo 개발 서버가 돌고 있는 PC의 IP(hostUri)를 그대로 써서
+// 같은 PC의 8080 포트 WebSocket 서버에 붙습니다. (휴대폰과 PC는 같은 Wi-Fi)
+// 배포 서버를 쓸 때는 EXPO_PUBLIC_WS_URL=wss://도메인 으로 덮어쓰기
+const WS_PORT = 8080;
+const devHost = (Constants.expoConfig?.hostUri || '').split(':')[0];
+
+export const WS_URL =
+  process.env.EXPO_PUBLIC_WS_URL || (devHost ? `ws://${devHost}:${WS_PORT}` : `ws://localhost:${WS_PORT}`);
 
 export const LEVELS = [
   { value: 0, label: '눈 없음', emoji: '☁️', color: '#94A3B8' },

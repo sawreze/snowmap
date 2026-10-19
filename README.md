@@ -5,11 +5,13 @@
 
 ```
 snowweb/
+├─ package.json     npm start 한 번으로 서버+앱 동시 실행
 ├─ server/            Node.js + ws 실시간 서버
 │  ├─ index.js
 │  └─ test-client.js  두 클라이언트로 제보·투표 전달 테스트
 └─ app/               React Native (Expo) 앱
    ├─ App.jsx         메인 화면 (연결 상태, 반경 필터, 제보 목록)
+   ├─ index.js        앱 진입점
    ├─ app.json        위치 권한 설정
    └─ src/
       ├─ config.js        서버 주소, 적설 단계/노면 상수
@@ -17,31 +19,24 @@ snowweb/
       └─ components/      ReportForm.jsx(제보 시트), ReportCard.jsx(제보 카드), ForecastPanel.jsx(기상청 예보)
 ```
 
-## 1. 서버 실행
+## 실행 (한 번에)
 
 ```bash
-cd server
-npm install
-npm start          # ws://0.0.0.0:8080
-npm test           # (다른 터미널에서) 동작 확인
+git clone https://github.com/sawreze/snowmap.git
+cd snowmap
+echo "KMA_API_KEY=발급받은키" > server/.env   # 없으면 테스트 예보로 동작
+npm run setup    # 처음 한 번: 루트·서버·앱 패키지 설치 + Expo 버전 맞춤
+npm start        # 서버(8080) + Expo 앱 동시 실행
 ```
 
-## 2. 앱 실행 (Expo)
+- 터미널에 뜬 QR을 휴대폰 **Expo Go**로 스캔 (PC와 같은 Wi-Fi)
+- 앱이 Expo 개발 서버의 PC IP를 자동으로 찾아 WebSocket 서버에 붙으므로 **IP 설정 불필요**
+- `npm run android` / `npm run ios` : 에뮬레이터·시뮬레이터로 바로 실행
+- 따로 띄우고 싶으면 `npm run server`, `npm run app`
+- 연결이 안 되면 PC 방화벽에서 8080 포트 허용
+- 배포 서버 주소를 쓰려면 `EXPO_PUBLIC_WS_URL=wss://도메인 npm start`
 
-```bash
-npx create-expo-app@latest snowweb-app --template blank
-cd snowweb-app
-npx expo install expo-location react-native-safe-area-context expo-status-bar
-```
-
-그다음 이 폴더의 `app/App.jsx`, `app/app.json`, `app/src/` 를 새 프로젝트에 덮어쓰고:
-
-1. `src/config.js` 의 `WS_URL` 을 서버 PC 주소로 변경
-   - 실제 폰: `ws://<PC 내부 IP>:8080` (같은 Wi-Fi, 방화벽에서 8080 허용)
-   - Android 에뮬레이터: `ws://10.0.2.2:8080` / iOS 시뮬레이터: `ws://localhost:8080`
-2. `npx expo start` → Expo Go로 QR 스캔
-
-> 템플릿이 `index.js`/`App.tsx` 구조라면 `App.jsx` 를 그 자리에 맞게 import 해주세요.
+서버 동작 테스트: `npm --prefix server test` (서버가 켜져 있을 때)
 
 ## 기상청 실시간 예보 연동
 

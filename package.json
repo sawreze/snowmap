@@ -1,0 +1,15 @@
+{
+  "name": "snowweb",
+  "private": true,
+  "scripts": {
+    "setup": "npm install && npm --prefix server install && npm --prefix app install && cd app && npx expo install --fix",
+    "start": "concurrently -k --handle-input --default-input-target app -n server,app -c blue,green \"npm --prefix server start\" \"npm --prefix app start\"",
+    "android": "concurrently -k --handle-input --default-input-target app -n server,app -c blue,green \"npm --prefix server start\" \"npm --prefix app run android\"",
+    "ios": "concurrently -k --handle-input --default-input-target app -n server,app -c blue,green \"npm --prefix server start\" \"npm --prefix app run ios\"",
+    "server": "npm --prefix server start",
+    "app": "npm --prefix app start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
