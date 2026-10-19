@@ -1,5 +1,8 @@
 // snowweb 실시간 제보 서버
 // 실행: npm install && npm start   (기본 포트 8080, PORT 환경변수로 변경)
+// server/.env 자동 로드 (Node 20.12+/21.7+)
+try { process.loadEnvFile(require('path').join(__dirname, '.env')); } catch {}
+
 // 기상청 연동: KMA_API_KEY=발급받은키 npm start  (키가 없으면 mock 예보로 동작)
 const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
